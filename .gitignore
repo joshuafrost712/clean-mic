@@ -1,0 +1,4 @@
+# The MetalVoice binary is fetched by setup.sh, not committed.
+vendor/
+*.zip
+.DS_Store

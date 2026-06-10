@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cleanmic.metalvoice</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/joshfrost/Documents/GitHub/clean-mic/vendor/MetalVoice.app/Contents/MacOS/MetalVoice</string>
+    </array>
+
+    <!-- Start at login and keep it running. If it quits or crashes, relaunch. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Avoid tight respawn loops if it ever fails to start. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/cleanmic-metalvoice.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/cleanmic-metalvoice.err.log</string>
+</dict>
+</plist>
