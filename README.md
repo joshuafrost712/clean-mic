@@ -63,11 +63,16 @@ No audio reaching your dictation app? Work through these in order:
   over at login.
 - In MetalVoice, confirm Input = your physical mic and Output = BlackHole 2ch.
 - Restart the denoiser cleanly (use this if audio ever drops, e.g. after
-  plugging/unplugging headphones, which re-enumerates audio devices):
+  plugging/unplugging headphones, which re-enumerates audio devices). Either
+  click **Restart Clean-Mic.app** (built by setup.sh, drag it to your Dock), or
+  run:
 
   ```bash
-  launchctl kickstart -k gui/$(id -u)/com.cleanmic.metalvoice
+  pkill -f 'MetalVoice.app/Contents/MacOS/MetalVoice'; \
+    launchctl kickstart -k gui/$(id -u)/com.cleanmic.metalvoice
   ```
+  (Killing the app first matters: `kickstart` alone re-activates a running
+  instance rather than relaunching it, so it wouldn't re-grab the mic.)
 
 - Verify objectively whether your voice reaches BlackHole (talk during it):
 

@@ -62,6 +62,17 @@ launchctl bootstrap "gui/$(id -u)" "$PLIST" && launchctl enable "gui/$(id -u)/$L
 echo "    LaunchAgent installed: $PLIST"
 echo "    (to disable later: launchctl bootout gui/\$(id -u)/$LABEL && rm \"$PLIST\")"
 
+# One-click recovery app: kills + relaunches the denoiser (re-grabs the mic).
+APP_SRC="$REPO_DIR/Restart Clean-Mic.applescript"
+if [ -f "$APP_SRC" ]; then
+  APP_DEST="/Applications/Restart Clean-Mic.app"
+  [ -w /Applications ] || { mkdir -p "$HOME/Applications"; APP_DEST="$HOME/Applications/Restart Clean-Mic.app"; }
+  rm -rf "$APP_DEST"
+  if osacompile -o "$APP_DEST" "$APP_SRC" 2>/dev/null; then
+    echo "    One-click recovery app: $APP_DEST (drag it to your Dock)"
+  fi
+fi
+
 echo "==> 4/4  Manual steps (GUI, one time):"
 cat <<'STEPS'
     a. Open MetalVoice.app (quarantine was cleared above, so it launches directly).
