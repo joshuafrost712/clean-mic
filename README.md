@@ -50,6 +50,34 @@ Important: in MetalVoice, set the Input to your physical mic BY NAME (e.g.
 default input to their chosen device; if MetalVoice follows "Default" it loops
 onto BlackHole and goes silent. Pinning the input by name makes it immune.
 
+## Troubleshooting
+
+No audio reaching your dictation app? Work through these in order:
+
+- Are you actually speaking? DeepFilterNet correctly suppresses a quiet room
+  (or just fan/AC noise) to near-silence. No speech = no signal, by design.
+- Microphone permission: System Settings > Privacy & Security > Microphone,
+  make sure MetalVoice is ON. This can drop after a reboot; toggling it and
+  restarting MetalVoice fixes it. The LaunchAgent launches the `.app` bundle
+  (via `open -W -a`, not the raw binary) specifically so this grant carries
+  over at login.
+- In MetalVoice, confirm Input = your physical mic and Output = BlackHole 2ch.
+- Restart the denoiser cleanly (use this if audio ever drops, e.g. after
+  plugging/unplugging headphones, which re-enumerates audio devices):
+
+  ```bash
+  launchctl kickstart -k gui/$(id -u)/com.cleanmic.metalvoice
+  ```
+
+- Verify objectively whether your voice reaches BlackHole (talk during it):
+
+  ```bash
+  ffmpeg -f avfoundation -i ":$(ffmpeg -f avfoundation -list_devices true -i '' 2>&1 | \
+    awk -F'[][]' '/BlackHole 2ch/{print $2; exit}')" -t 8 /tmp/bh.wav -y 2>/dev/null
+  ffmpeg -i /tmp/bh.wav -af volumedetect -f null - 2>&1 | grep mean_volume
+  ```
+  A mean_volume well above the ~-85 dB silence floor means signal is flowing.
+
 ## Credits / licenses
 
 - MetalVoice (MIT) — https://github.com/Ghostkwebb/MetalVoice

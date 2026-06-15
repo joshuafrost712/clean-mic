@@ -38,7 +38,6 @@ echo "    MetalVoice.app -> $VENDOR_DIR/MetalVoice.app (quarantine cleared)"
 echo "==> 3/4  Installing auto-start LaunchAgent (starts at login, self-heals)"
 LABEL="com.cleanmic.metalvoice"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-BIN="$VENDOR_DIR/MetalVoice.app/Contents/MacOS/MetalVoice"
 mkdir -p "$HOME/Library/LaunchAgents"
 cat > "$PLIST" <<PLISTEOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -46,7 +45,7 @@ cat > "$PLIST" <<PLISTEOF
 <plist version="1.0">
 <dict>
     <key>Label</key><string>$LABEL</string>
-    <key>ProgramArguments</key><array><string>$BIN</string></array>
+    <key>ProgramArguments</key><array><string>/usr/bin/open</string><string>-W</string><string>-a</string><string>$VENDOR_DIR/MetalVoice.app</string></array>
     <key>RunAtLoad</key><true/>
     <key>KeepAlive</key><true/>
     <key>ThrottleInterval</key><integer>30</integer>

@@ -5,9 +5,15 @@
     <key>Label</key>
     <string>com.cleanmic.metalvoice</string>
 
+    <!-- Launch the .app bundle (not the raw binary) so the microphone
+         permission granted to MetalVoice.app carries over at login.
+         `open -W` blocks until the app exits, so KeepAlive still works. -->
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/joshfrost/Documents/GitHub/clean-mic/vendor/MetalVoice.app/Contents/MacOS/MetalVoice</string>
+        <string>/usr/bin/open</string>
+        <string>-W</string>
+        <string>-a</string>
+        <string>/Users/joshfrost/Documents/GitHub/clean-mic/vendor/MetalVoice.app</string>
     </array>
 
     <!-- Start at login and keep it running. If it quits or crashes, relaunch. -->
