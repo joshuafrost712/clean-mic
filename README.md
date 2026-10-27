@@ -36,13 +36,28 @@ lifting is done by two open-source projects (credited below).
 Then follow the printed one-time GUI steps (mic permission, device routing).
 A reboot may be needed after installing BlackHole.
 
-`setup.sh` also installs a LaunchAgent (`com.cleanmic.metalvoice`) that starts
-MetalVoice at login and relaunches it if it ever quits, so the denoiser is
-always running with nothing to remember. To remove it:
+`setup.sh` also installs a small **supervisor** LaunchAgent
+(`com.cleanmic.supervisor`) so the denoiser runs *only while you're dictating*
+instead of holding the microphone 24/7. The supervisor watches your dictation
+app's log; when a recording starts it launches MetalVoice, and after
+`CLEANMIC_IDLE_SECONDS` (default 180) with no recording it quits MetalVoice and
+releases the mic. This keeps the mic off when you're not dictating and avoids a
+speaker↔mic feedback loop from a long-lived instance whose output can drift onto
+the speakers across audio-device changes.
+
+The supervisor keys on **Handy**'s log (`~/Library/Logs/com.pais.handy/handy.log`,
+with Handy's `log_level` set to `debug`). The one tradeoff: MetalVoice
+cold-launches in ~1-2s, so the first utterance after a long idle gap can clip
+while it warms up; back-to-back dictation within the idle window stays warm. Set
+`CLEANMIC_IDLE_SECONDS` in the LaunchAgent to tune the window. The executable
+copy of the script lives at `~/Library/Application Support/cleanmic/` (not in
+this repo) because macOS blocks launchd-spawned `bash` from reading scripts
+inside `~/Documents`. To remove it:
 
 ```bash
-launchctl bootout gui/$(id -u)/com.cleanmic.metalvoice
-rm ~/Library/LaunchAgents/com.cleanmic.metalvoice.plist
+launchctl bootout gui/$(id -u)/com.cleanmic.supervisor
+rm ~/Library/LaunchAgents/com.cleanmic.supervisor.plist
+pkill -f 'MetalVoice.app/Contents/MacOS/MetalVoice'
 ```
 
 Important: in MetalVoice, set the Input to your physical mic BY NAME (e.g.
@@ -56,23 +71,26 @@ No audio reaching your dictation app? Work through these in order:
 
 - Are you actually speaking? DeepFilterNet correctly suppresses a quiet room
   (or just fan/AC noise) to near-silence. No speech = no signal, by design.
+- Is MetalVoice even running? With the supervisor it only runs *while you're
+  dictating* and for `CLEANMIC_IDLE_SECONDS` after. Check with
+  `pgrep -fl MetalVoice`. If it never starts when you record, the supervisor
+  isn't seeing Handy's log markers: confirm Handy's `log_level` is `debug` and
+  watch `tail -f /tmp/cleanmic-supervisor.out.log` while you dictate.
 - Microphone permission: System Settings > Privacy & Security > Microphone,
   make sure MetalVoice is ON. This can drop after a reboot; toggling it and
-  restarting MetalVoice fixes it. The LaunchAgent launches the `.app` bundle
-  (via `open -W -a`, not the raw binary) specifically so this grant carries
-  over at login.
-- In MetalVoice, confirm Input = your physical mic and Output = BlackHole 2ch.
-- Restart the denoiser cleanly (use this if audio ever drops, e.g. after
-  plugging/unplugging headphones, which re-enumerates audio devices). Either
-  click **Restart Clean-Mic.app** (built by setup.sh, drag it to your Dock), or
-  run:
+  restarting MetalVoice fixes it. The supervisor launches the `.app` bundle
+  (via `open`, not the raw binary) so the permission granted to the app carries
+  over.
+- In MetalVoice, confirm Input = your physical mic and Output = BlackHole 2ch,
+  both pinned BY NAME (not "Default"). A "Default" output can resolve to your
+  speakers and create a speaker↔mic feedback loop.
+- Restart the whole thing cleanly (use this if audio ever drops, e.g. after
+  plugging/unplugging headphones, which re-enumerates audio devices):
 
   ```bash
   pkill -f 'MetalVoice.app/Contents/MacOS/MetalVoice'; \
-    launchctl kickstart -k gui/$(id -u)/com.cleanmic.metalvoice
+    launchctl kickstart -k gui/$(id -u)/com.cleanmic.supervisor
   ```
-  (Killing the app first matters: `kickstart` alone re-activates a running
-  instance rather than relaunching it, so it wouldn't re-grab the mic.)
 
 - Verify objectively whether your voice reaches BlackHole (talk during it):
 

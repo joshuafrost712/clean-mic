@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cleanmic.supervisor</string>
+
+    <!-- Runs the lightweight log-watcher, NOT MetalVoice itself. The watcher
+         launches MetalVoice only while Handy is recording and quits it after an
+         idle gap, so the microphone is released when you're not dictating. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/joshfrost/Library/Application Support/cleanmic/cleanmic-supervisor.sh</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/cleanmic-supervisor.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/cleanmic-supervisor.err.log</string>
+</dict>
+</plist>
