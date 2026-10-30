@@ -7,7 +7,7 @@
 # denoised mic -> BlackHole -> Handy pipeline is live), and it quits MetalVoice
 # after IDLE_SECONDS with no recording, releasing the microphone.
 #
-# Why a supervisor and not a per-keystroke tie: MetalVoice has no CLI/URL
+# Why a supervisor and not a per-keystroke tie: MetalVoice has no URL or IPC
 # control, only launch/quit. Launching it cold takes ~1-3s, so binding it to the
 # exact record keypress would clip the first word. Following Handy's activity
 # with a short idle window keeps the mic off when you're not dictating while
@@ -23,12 +23,23 @@ set -uo pipefail
 # Lower = mic released sooner; higher = fewer cold first-words during a session.
 IDLE_SECONDS="${CLEANMIC_IDLE_SECONDS:-180}"
 
-# Absolute path (not derived from this script's location): the executable copy
+# Absolute paths (not derived from this script's location): the executable copy
 # of this script lives under ~/Library/Application Support/cleanmic so launchd
-# can read it (macOS TCC blocks launchd-spawned bash from reading ~/Documents),
-# while MetalVoice.app stays in the repo. `open` can still launch it from there.
-MV_APP="$HOME/Documents/GitHub/clean-mic/vendor/MetalVoice.app"
-MV_BIN_PAT="MetalVoice.app/Contents/MacOS/MetalVoice"
+# can read it (macOS TCC blocks launchd-spawned bash from reading ~/Documents).
+#
+# 2026-10-29: run MetalVoiceCLI, not MetalVoice.app. The app forgets its devices
+# on every launch (it came up on BlackHole 16ch in Passthrough) and, even when
+# set by hand to BlackHole 2ch with the AI on, sent pure silence. The CLI pins
+# both devices by name and passed a speech test. A bare CLI started by launchd
+# gets no mic access (macOS feeds it zeros), so setup.sh wraps it with its model
+# in CleanMicCLI.app (bundle id com.cleanmic.cli), which holds its own mic
+# permission. Its binary is run directly: launched via `open` it sent silence
+# even with the grant on.
+MV_BUNDLE="$HOME/Library/Application Support/cleanmic/CleanMicCLI.app"
+MV_IN="${CLEANMIC_INPUT:-MacBook Pro Microphone}"
+MV_OUT="${CLEANMIC_OUTPUT:-BlackHole 2ch}"
+MV_BIN_PAT="MetalVoiceCLI --in"
+MV_APP_PAT="MetalVoice.app/Contents/MacOS/MetalVoice"
 HANDY_LOG="$HOME/Library/Logs/com.pais.handy/handy.log"
 
 # Log lines Handy emits (log_level=debug). If Handy's log level or wording
@@ -40,10 +51,16 @@ STOP_MARKER="Microphone stream stopped"
 
 ts() { date "+%Y-%m-%d %H:%M:%S"; }
 mv_running() { pgrep -f "$MV_BIN_PAT" >/dev/null 2>&1; }
-start_mv() { mv_running || { echo "$(ts) starting MetalVoice"; open -g -a "$MV_APP"; }; }
-stop_mv()  { mv_running && { echo "$(ts) stopping MetalVoice (idle ${IDLE_SECONDS}s)"; pkill -f "$MV_BIN_PAT"; }; }
+start_mv() {
+  mv_running && return
+  echo "$(ts) starting MetalVoiceCLI ($MV_IN -> $MV_OUT)"
+  "$MV_BUNDLE/Contents/MacOS/MetalVoiceCLI" --in "$MV_IN" --out "$MV_OUT" </dev/null >>/tmp/cleanmic-metalvoice.log 2>&1 &
+}
+stop_mv()  { mv_running && { echo "$(ts) stopping MetalVoiceCLI (idle ${IDLE_SECONDS}s)"; pkill -f "$MV_BIN_PAT"; }; }
 
 # Make sure we start from a clean slate: mic released until the next recording.
+# Also quit the old menu-bar app if it is still open from before the switch.
+pkill -f "$MV_APP_PAT" 2>/dev/null
 stop_mv
 
 # Wait for the log file to exist (Handy may not have created it yet at login).

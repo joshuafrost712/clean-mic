@@ -48,6 +48,31 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 SUP_DIR="$HOME/Library/Application Support/cleanmic"
 mkdir -p "$HOME/Library/LaunchAgents" "$SUP_DIR"
 install -m 0755 "$REPO_DIR/cleanmic-supervisor.sh" "$SUP_DIR/cleanmic-supervisor.sh"
+# The supervisor runs MetalVoiceCLI (the menu-bar app forgets its devices and
+# sent silence, 2026-10-29), wrapped in a small app bundle so it can hold its
+# own mic permission (a bare binary under launchd records zeros). macOS asks
+# once to allow "CleanMicCLI" the microphone.
+CLI_APP="$SUP_DIR/CleanMicCLI.app"
+mkdir -p "$CLI_APP/Contents/MacOS" "$CLI_APP/Contents/Resources"
+install -m 0755 "$REPO_DIR/vendor/MetalVoiceCLI" "$CLI_APP/Contents/MacOS/MetalVoiceCLI"
+rm -rf "$CLI_APP/Contents/Resources/DeepFilterNet3_Streaming.mlmodelc"
+cp -R "$REPO_DIR/vendor/MetalVoice.app/Contents/Resources/DeepFilterNet3_Streaming.mlmodelc" "$CLI_APP/Contents/Resources/"
+cat > "$CLI_APP/Contents/Info.plist" <<'INFOEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>com.cleanmic.cli</string>
+  <key>CFBundleName</key><string>CleanMicCLI</string>
+  <key>CFBundleExecutable</key><string>MetalVoiceCLI</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>CleanMic denoises the microphone for dictation.</string>
+</dict>
+</plist>
+INFOEOF
+codesign --force --deep -s - "$CLI_APP"
 cat > "$PLIST" <<PLISTEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
